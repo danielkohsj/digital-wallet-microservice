@@ -13,3 +13,13 @@ Tech stack:
 - Spring Boot 3
 - PostgreSQL
 - JPA / Hibernate
+
+## Run locally
+
+Start database:
+
+docker compose up -d
+
+Run application:
+
+mvn spring-boot:run
