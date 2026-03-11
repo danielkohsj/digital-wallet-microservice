@@ -26,7 +26,7 @@ public class Transaction {
      */
     @Id
     @GeneratedValue
-    private UUID id;
+    private UUID transactionId;
 
     /**
      * Type of transaction (CREDIT, DEBIT, TRANSFER).

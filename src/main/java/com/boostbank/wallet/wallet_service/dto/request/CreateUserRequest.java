@@ -1,5 +1,6 @@
 package com.boostbank.wallet.wallet_service.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 
@@ -12,11 +13,13 @@ public class CreateUserRequest {
     /**
      * The full name of the user.
      */
+    @NotBlank
     private String name;
 
     /**
      * Unique email address associated with the user.
      */
+    @NotBlank
     private String email;
 
 }

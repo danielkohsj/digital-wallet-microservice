@@ -16,7 +16,7 @@ import lombok.Data;
  */
 @Data
 @Builder
-public class ApiResponse<T> {
+public class BaseResponse<T> {
 
     /**
      * Indicates whether the API request was successful or failed.

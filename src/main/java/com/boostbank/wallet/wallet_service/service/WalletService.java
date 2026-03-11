@@ -1,8 +1,10 @@
 package com.boostbank.wallet.wallet_service.service;
 
+import com.boostbank.wallet.wallet_service.entity.IdempotencyKey;
 import com.boostbank.wallet.wallet_service.entity.Transaction;
 import com.boostbank.wallet.wallet_service.entity.User;
 import com.boostbank.wallet.wallet_service.enums.TransactionType;
+import com.boostbank.wallet.wallet_service.repository.IdempotencyKeyRepository;
 import com.boostbank.wallet.wallet_service.repository.TransactionRepository;
 import com.boostbank.wallet.wallet_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,8 @@ public class WalletService {
     private final UserRepository userRepository;
 
     private final TransactionRepository transactionRepository;
+
+    private final IdempotencyKeyRepository idempotencyKeyRepository;
 
     private final TransactionTemplate transactionTemplate;
 
@@ -75,21 +79,38 @@ public class WalletService {
      * @param userId the user receiving the credited funds
      * @param amount the amount to credit
      */
-    public void credit(UUID userId, BigDecimal amount) {
+    public void credit(String idempotencyKey, UUID userId, BigDecimal amount) {
 
         transactionTemplate.executeWithoutResult(status -> {
-            User user = userRepository.findById(userId)
+
+            if (idempotencyKeyRepository.existsById(idempotencyKey)) {
+                return; // request already processed
+            }
+
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Amount must be greater than zero");
+            }
+
+            User user = userRepository.findByIdForUpdate(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             user.setBalance(user.getBalance().add(amount));
             userRepository.save(user);
 
-            transactionRepository.save(
+            Transaction tx = transactionRepository.save(
                     Transaction.builder()
                             .type(TransactionType.CREDIT)
                             .amount(amount)
                             .destinationUserId(userId)
                             .timestamp(Instant.now())
+                            .build()
+            );
+
+            idempotencyKeyRepository.save(
+                    IdempotencyKey.builder()
+                            .idempotencyKey(idempotencyKey)
+                            .transactionId(tx.getTransactionId())
+                            .createdAt(Instant.now())
                             .build()
             );
         });
@@ -114,11 +135,19 @@ public class WalletService {
      * @param userId the user whose wallet will be debited
      * @param amount the amount to deduct
      */
-    public void debit(UUID userId, BigDecimal amount) {
+    public void debit(String idempotencyKey, UUID userId, BigDecimal amount) {
 
         transactionTemplate.executeWithoutResult(status -> {
 
-            User user = userRepository.findById(userId)
+            if (idempotencyKeyRepository.existsById(idempotencyKey)) {
+                return; // request already processed
+            }
+
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Amount must be greater than zero");
+            }
+
+            User user = userRepository.findByIdForUpdate(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             if (user.getBalance().compareTo(amount) < 0) {
@@ -128,12 +157,20 @@ public class WalletService {
             user.setBalance(user.getBalance().subtract(amount));
             userRepository.save(user);
 
-            transactionRepository.save(
+            Transaction tx = transactionRepository.save(
                     Transaction.builder()
                             .type(TransactionType.DEBIT)
                             .amount(amount)
                             .sourceUserId(userId)
                             .timestamp(Instant.now())
+                            .build()
+            );
+
+            idempotencyKeyRepository.save(
+                    IdempotencyKey.builder()
+                            .idempotencyKey(idempotencyKey)
+                            .transactionId(tx.getTransactionId())
+                            .createdAt(Instant.now())
                             .build()
             );
         });
@@ -162,15 +199,30 @@ public class WalletService {
      * @param destinationUserId the user receiving funds
      * @param amount            the amount to transfer
      */
-    public void transfer(UUID sourceUserId, UUID destinationUserId, BigDecimal amount) {
+    public void transfer(String idempotencyKey, UUID sourceUserId, UUID destinationUserId, BigDecimal amount) {
 
         transactionTemplate.executeWithoutResult(status -> {
 
-            User sourceUser = userRepository.findById(sourceUserId)
-                    .orElseThrow(() -> new RuntimeException("Source user not found"));
+            if (idempotencyKeyRepository.existsById(idempotencyKey)) {
+                return; // request already processed
+            }
 
-            User destinationUser = userRepository.findById(destinationUserId)
-                    .orElseThrow(() -> new RuntimeException("Destination user not found"));
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Amount must be greater than zero");
+            }
+
+            // deadlock prevention
+            UUID first = sourceUserId.compareTo(destinationUserId) < 0 ? sourceUserId : destinationUserId;
+            UUID second = sourceUserId.compareTo(destinationUserId) < 0 ? destinationUserId : sourceUserId;
+
+            User firstUser = userRepository.findByIdForUpdate(first)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            User secondUser = userRepository.findByIdForUpdate(second)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            User sourceUser = firstUser.getId().equals(sourceUserId) ? firstUser : secondUser;
+            User destinationUser = firstUser.getId().equals(destinationUserId) ? firstUser : secondUser;
 
             if (sourceUser.getBalance().compareTo(amount) < 0) {
                 throw new RuntimeException("Insufficient balance");
@@ -182,13 +234,21 @@ public class WalletService {
             userRepository.save(sourceUser);
             userRepository.save(destinationUser);
 
-            transactionRepository.save(
+            Transaction tx = transactionRepository.save(
                     Transaction.builder()
                             .type(TransactionType.TRANSFER)
                             .amount(amount)
                             .sourceUserId(sourceUserId)
                             .destinationUserId(destinationUserId)
                             .timestamp(Instant.now())
+                            .build()
+            );
+
+            idempotencyKeyRepository.save(
+                    IdempotencyKey.builder()
+                            .idempotencyKey(idempotencyKey)
+                            .transactionId(tx.getTransactionId())
+                            .createdAt(Instant.now())
                             .build()
             );
         });
