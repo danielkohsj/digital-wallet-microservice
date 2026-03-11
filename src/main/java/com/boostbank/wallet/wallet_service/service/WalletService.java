@@ -22,6 +22,34 @@ import java.util.List;
 import java.util.UUID;
 
 
+/**
+ * Core service responsible for managing wallet operations.
+ *
+ * <p>This service implements the main business logic for the digital wallet system,
+ * including user creation, balance management, fund transfers, and transaction history retrieval.</p>
+ *
+ * <p>Financial operations are executed within transactional boundaries to ensure atomicity
+ * and consistency between wallet balances and transaction records.</p>
+ *
+ * <p>The service incorporates several safeguards to ensure financial correctness:</p>
+ *
+ * <ul>
+ *     <li><b>Idempotency</b> – Prevents duplicate financial operations by storing and validating
+ *     idempotency keys for each request.</li>
+ *
+ *     <li><b>Pessimistic Locking</b> – Uses database row-level locks to prevent concurrent updates
+ *     to wallet balances during financial operations.</li>
+ *
+ *     <li><b>Deadlock Prevention</b> – Ensures deterministic locking order when multiple users are
+ *     involved in a transaction (e.g., transfers).</li>
+ *
+ *     <li><b>Validation</b> – Enforces business rules such as valid transaction amounts and
+ *     sufficient wallet balances.</li>
+ * </ul>
+ *
+ * <p>This design ensures that wallet operations remain safe and consistent even under
+ * concurrent request scenarios.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class WalletService {
@@ -70,24 +98,21 @@ public class WalletService {
     }
 
     /**
-     * Credits (adds funds to) a user's wallet.
+     * Credits funds to a user's wallet.
      *
-     * This operation runs inside a transactional boundary to ensure
-     * atomicity between the balance update and transaction recording.
+     * <p>This operation is executed within a database transaction to ensure
+     * atomic updates between the user's wallet balance and the transaction record.</p>
      *
-     * Steps:
-     * 1. Begin database transaction.
-     * 2. Retrieve the user from the database.
-     * 3. Validate that the amount is greater than zero.
-     * 4. Add the specified amount to the user's balance.
-     * 5. Persist the updated balance.
-     * 6. Create a {@link Transaction} record of type CREDIT.
-     * 7. Store the transaction in the database.
+     * <p>An idempotency key is inserted before processing to prevent duplicate
+     * financial operations caused by client retries.</p>
      *
-     * If any step fails, the entire transaction is rolled back.
-     *
+     * @param idempotencyKey unique key used to ensure request idempotency
      * @param userId the user receiving the credited funds
      * @param amount the amount to credit
+     *
+     * @throws DuplicateRequestException if the idempotency key has already been processed
+     * @throws InvalidAmountException if the amount is less than or equal to zero
+     * @throws UserNotFoundException if the specified user does not exist
      */
     public void credit(String idempotencyKey, UUID userId, BigDecimal amount) {
 
@@ -121,23 +146,22 @@ public class WalletService {
     }
 
     /**
-     * Debits (deducts funds from) a user's wallet.
+     * Debits funds from a user's wallet.
      *
-     * Steps:
-     * 1. Begin a transactional operation.
-     * 2. Retrieve the user from the database.
-     * 3. Validate that the amount is greater than zero.
-     * 4. Check if the user has sufficient balance.
-     * 5. Deduct the amount from the user's balance.
-     * 6. Persist the updated balance.
-     * 7. Create a transaction record of type DEBIT.
-     * 8. Save the transaction record.
+     * <p>The operation executes within a transactional boundary to guarantee
+     * atomic balance updates and transaction persistence.</p>
      *
-     * If any step fails (e.g. insufficient funds),
-     * the transaction will be rolled back automatically.
+     * <p>Pessimistic locking is used to prevent concurrent balance modifications.
+     * The user's balance is validated before deduction to ensure sufficient funds.</p>
      *
+     * @param idempotencyKey unique key used to ensure request idempotency
      * @param userId the user whose wallet will be debited
      * @param amount the amount to deduct
+     *
+     * @throws DuplicateRequestException if the idempotency key has already been processed
+     * @throws InvalidAmountException if the amount is less than or equal to zero
+     * @throws InsufficientBalanceException if the wallet balance is insufficient
+     * @throws UserNotFoundException if the specified user does not exist
      */
     public void debit(String idempotencyKey, UUID userId, BigDecimal amount) {
 
@@ -173,27 +197,24 @@ public class WalletService {
     }
 
     /**
-     * Transfers funds between two users' wallets.
+     * Transfers funds between two wallet users.
      *
-     * This operation must be atomic to ensure that both balance updates
-     * occur together or not at all.
+     * <p>This operation is executed atomically within a database transaction to
+     * guarantee that both balance updates occur together.</p>
      *
-     * Steps:
-     * 1. Begin a transactional operation.
-     * 2. Retrieve the source and destination users.
-     * 3. Validate that the transfer amount is greater than zero.
-     * 4. Ensure the source user has sufficient balance.
-     * 5. Deduct the amount from the source user's wallet.
-     * 6. Add the amount to the destination user's wallet.
-     * 7. Persist both updated users.
-     * 8. Create a transaction record of type TRANSFER.
-     * 9. Store the transaction in the database.
+     * <p>Pessimistic locking is used to prevent concurrent balance updates.
+     * Both users are locked in a deterministic order to avoid database deadlocks
+     * during concurrent transfer operations.</p>
      *
-     * If any step fails, the entire transfer is rolled back.
-     *
-     * @param sourceUserId      the user sending funds
+     * @param idempotencyKey unique key used to ensure request idempotency
+     * @param sourceUserId the user sending funds
      * @param destinationUserId the user receiving funds
-     * @param amount            the amount to transfer
+     * @param amount the amount to transfer
+     *
+     * @throws DuplicateRequestException if the idempotency key has already been processed
+     * @throws InvalidAmountException if the amount is less than or equal to zero
+     * @throws InsufficientBalanceException if the source wallet has insufficient balance
+     * @throws UserNotFoundException if either user cannot be found
      */
     public void transfer(String idempotencyKey, UUID sourceUserId, UUID destinationUserId, BigDecimal amount) {
 
