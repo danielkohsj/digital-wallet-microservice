@@ -84,7 +84,7 @@ public class WalletService {
         transactionTemplate.executeWithoutResult(status -> {
 
             if (idempotencyKeyRepository.existsById(idempotencyKey)) {
-                return; // request already processed
+                throw new RuntimeException("Duplicate request");
             }
 
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -140,7 +140,7 @@ public class WalletService {
         transactionTemplate.executeWithoutResult(status -> {
 
             if (idempotencyKeyRepository.existsById(idempotencyKey)) {
-                return; // request already processed
+                throw new RuntimeException("Duplicate request");
             }
 
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -204,7 +204,7 @@ public class WalletService {
         transactionTemplate.executeWithoutResult(status -> {
 
             if (idempotencyKeyRepository.existsById(idempotencyKey)) {
-                return; // request already processed
+                throw new RuntimeException("Duplicate request");
             }
 
             if (amount.compareTo(BigDecimal.ZERO) <= 0) {
