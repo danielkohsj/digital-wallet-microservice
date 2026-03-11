@@ -97,8 +97,9 @@ public class WalletService {
         transactionTemplate.executeWithoutResult(status -> {
 
             // 1. Checks for duplicate transactions
+            IdempotencyKey key;
             try {
-                insertIdempotencyKey(idempotencyKey);
+                key = insertIdempotencyKey(idempotencyKey);
             } catch (DataIntegrityViolationException ex) {
                 throw new DuplicateRequestException("Duplicate request detected");
             }
@@ -112,7 +113,7 @@ public class WalletService {
             user.setBalance(user.getBalance().add(amount));
 
             // 4. Create new credit transaction info
-            transactionRepository.save(
+            Transaction tx = transactionRepository.save(
                     Transaction.builder()
                             .type(TransactionType.CREDIT)
                             .amount(amount)
@@ -120,6 +121,8 @@ public class WalletService {
                             .timestamp(Instant.now())
                             .build()
             );
+            key.setTransactionId(tx.getTransactionId());
+            idempotencyKeyRepository.save(key);
         });
     }
 
@@ -146,8 +149,9 @@ public class WalletService {
         transactionTemplate.executeWithoutResult(status -> {
 
             // 1. Checks for duplicate transactions
+            IdempotencyKey key;
             try {
-                insertIdempotencyKey(idempotencyKey);
+                key = insertIdempotencyKey(idempotencyKey);
             } catch (DataIntegrityViolationException ex) {
                 throw new DuplicateRequestException("Duplicate request detected");
             }
@@ -163,7 +167,7 @@ public class WalletService {
             user.setBalance(user.getBalance().subtract(amount));
 
             // 4. Create new debit transaction info
-            transactionRepository.save(
+            Transaction tx = transactionRepository.save(
                     Transaction.builder()
                             .type(TransactionType.DEBIT)
                             .amount(amount)
@@ -171,6 +175,8 @@ public class WalletService {
                             .timestamp(Instant.now())
                             .build()
             );
+            key.setTransactionId(tx.getTransactionId());
+            idempotencyKeyRepository.save(key);
         });
     }
 
@@ -199,8 +205,9 @@ public class WalletService {
         transactionTemplate.executeWithoutResult(status -> {
 
             // 1. Checks for duplicate transactions
+            IdempotencyKey key;
             try {
-                insertIdempotencyKey(idempotencyKey);
+                key = insertIdempotencyKey(idempotencyKey);
             } catch (DataIntegrityViolationException ex) {
                 throw new DuplicateRequestException("Duplicate request detected");
             }
@@ -219,7 +226,7 @@ public class WalletService {
             destinationUser.setBalance(destinationUser.getBalance().add(amount));
 
             // 5. Create transfer transaction info
-            transactionRepository.save(
+            Transaction tx = transactionRepository.save(
                     Transaction.builder()
                             .type(TransactionType.TRANSFER)
                             .amount(amount)
@@ -228,6 +235,8 @@ public class WalletService {
                             .timestamp(Instant.now())
                             .build()
             );
+            key.setTransactionId(tx.getTransactionId());
+            idempotencyKeyRepository.save(key);
         });
     }
 
@@ -259,9 +268,10 @@ public class WalletService {
      * check for key existence simultaneously.</p>
      *
      * @param idempotencyKey the unique idempotency key provided by the client
+     * @return IdempotencyKey the newly created unique idempotency key for a transaction
      */
-    private void insertIdempotencyKey(String idempotencyKey) {
-        idempotencyKeyRepository.save(
+    private IdempotencyKey insertIdempotencyKey(String idempotencyKey) {
+        return idempotencyKeyRepository.save(
                 IdempotencyKey.builder()
                         .idempotencyKey(idempotencyKey)
                         .createdAt(Instant.now())
