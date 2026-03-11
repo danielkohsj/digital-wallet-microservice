@@ -326,5 +326,4 @@ Duplicate requests are prevented using stored idempotency keys.
 
 # Author
 
-Koh Sheng Jie
-Backend Engineer Technical Assessment for Boost Bank
+Koh Sheng Jie - Backend Engineer Technical Assessment for Boost Bank
