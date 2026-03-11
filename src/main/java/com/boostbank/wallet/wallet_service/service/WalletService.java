@@ -2,7 +2,7 @@ package com.boostbank.wallet.wallet_service.service;
 
 import com.boostbank.wallet.wallet_service.entity.Transaction;
 import com.boostbank.wallet.wallet_service.entity.User;
-import com.boostbank.wallet.wallet_service.enums.TransactionTypeEnum;
+import com.boostbank.wallet.wallet_service.enums.TransactionType;
 import com.boostbank.wallet.wallet_service.repository.TransactionRepository;
 import com.boostbank.wallet.wallet_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -86,7 +86,7 @@ public class WalletService {
 
             transactionRepository.save(
                     Transaction.builder()
-                            .type(TransactionTypeEnum.CREDIT)
+                            .type(TransactionType.CREDIT)
                             .amount(amount)
                             .destinationUserId(userId)
                             .timestamp(Instant.now())
@@ -130,7 +130,7 @@ public class WalletService {
 
             transactionRepository.save(
                     Transaction.builder()
-                            .type(TransactionTypeEnum.DEBIT)
+                            .type(TransactionType.DEBIT)
                             .amount(amount)
                             .sourceUserId(userId)
                             .timestamp(Instant.now())
@@ -184,7 +184,7 @@ public class WalletService {
 
             transactionRepository.save(
                     Transaction.builder()
-                            .type(TransactionTypeEnum.TRANSFER)
+                            .type(TransactionType.TRANSFER)
                             .amount(amount)
                             .sourceUserId(sourceUserId)
                             .destinationUserId(destinationUserId)

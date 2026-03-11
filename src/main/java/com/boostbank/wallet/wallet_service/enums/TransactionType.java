@@ -16,7 +16,7 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum TransactionTypeEnum {
+public enum TransactionType {
 
     /**
      * Credit transaction where funds are added to the user's wallet.
@@ -44,19 +44,19 @@ public enum TransactionTypeEnum {
     private final String desc;
 
     /**
-     * Retrieves the TransactionTypeEnum corresponding to the given code.
+     * Retrieves the TransactionType corresponding to the given code.
      *
      * @param code the transaction type code
-     * @return the matching TransactionTypeEnum, or null if no match is found
+     * @return the matching TransactionType, or null if no match is found
      */
-    public static TransactionTypeEnum getByCode(String code) {
+    public static TransactionType getByCode(String code) {
         if (code == null || code.isBlank()) {
             return null;
         }
 
-        for (TransactionTypeEnum transactionTypeEnum : TransactionTypeEnum.values()) {
-            if (transactionTypeEnum.getCode().equalsIgnoreCase(code)) {
-                return transactionTypeEnum;
+        for (TransactionType transactionType : TransactionType.values()) {
+            if (transactionType.getCode().equalsIgnoreCase(code)) {
+                return transactionType;
             }
         }
 

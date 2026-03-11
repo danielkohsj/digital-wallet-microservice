@@ -1,6 +1,6 @@
 package com.boostbank.wallet.wallet_service.entity;
 
-import com.boostbank.wallet.wallet_service.enums.TransactionTypeEnum;
+import com.boostbank.wallet.wallet_service.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -33,7 +33,7 @@ public class Transaction {
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TransactionTypeEnum type;
+    private TransactionType type;
 
     /**
      * Amount involved in the transaction.
