@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+
 /**
  * Represents a wallet transaction such as credit, debit, or transfer.
  */

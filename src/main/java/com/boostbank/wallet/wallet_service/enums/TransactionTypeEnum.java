@@ -3,6 +3,7 @@ package com.boostbank.wallet.wallet_service.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+
 /**
  * Represents the different types of wallet transactions supported
  * by the Digital Wallet Microservice.

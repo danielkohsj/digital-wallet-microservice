@@ -6,6 +6,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+
 /**
  * Represents a wallet user in the digital wallet system.
  * Each user has a unique email and a wallet balance.
