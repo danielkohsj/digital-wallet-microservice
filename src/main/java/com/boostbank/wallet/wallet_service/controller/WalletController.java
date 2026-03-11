@@ -5,6 +5,7 @@ import com.boostbank.wallet.wallet_service.dto.response.*;
 import com.boostbank.wallet.wallet_service.entity.Transaction;
 import com.boostbank.wallet.wallet_service.entity.User;
 import com.boostbank.wallet.wallet_service.enums.ResultInfo;
+import com.boostbank.wallet.wallet_service.service.UserService;
 import com.boostbank.wallet.wallet_service.service.WalletService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +31,15 @@ public class WalletController {
 
     private final WalletService walletService;
 
+    private final UserService userService;
+
     /**
      * Creates a new wallet user.
      *
      * Steps:
      * 1. Receive a {@link CreateUserRequest} containing user details.
      * 2. Validate the request payload using {@link Valid}.
-     * 3. Call {@link WalletService#createUser(String, String)} to create the user.
+     * 3. Call {@link UserService#createUser(String, String)} to create the user.
      * 4. Map the returned {@link User} entity into {@link UserResponse}.
      * 5. Wrap the response inside an {@link BaseResponse} object.
      *
@@ -46,7 +49,7 @@ public class WalletController {
     @PostMapping("/users")
     public BaseResponse<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
 
-        User user = walletService.createUser(request.getName(), request.getEmail());
+        User user = userService.createUser(request.getName(), request.getEmail());
 
         UserResponse response = UserResponse.builder()
                 .id(user.getId())

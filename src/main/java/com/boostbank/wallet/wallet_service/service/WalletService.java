@@ -26,7 +26,7 @@ import java.util.UUID;
  * Core service responsible for managing wallet operations.
  *
  * <p>This service implements the main business logic for the digital wallet system,
- * including user creation, balance management, fund transfers, and transaction history retrieval.</p>
+ * including balance management, fund transfers, and transaction history retrieval.</p>
  *
  * <p>Financial operations are executed within transactional boundaries to ensure atomicity
  * and consistency between wallet balances and transaction records.</p>
@@ -61,28 +61,6 @@ public class WalletService {
     private final IdempotencyKeyRepository idempotencyKeyRepository;
 
     private final TransactionTemplate transactionTemplate;
-
-    /**
-     * Creates a new wallet user.
-     *
-     * @param name  the user's name
-     * @param email the user's unique email
-     * @return the persisted user entity
-     */
-    public User createUser(String name, String email) {
-        try {
-            User user = User.builder()
-                    .name(name)
-                    .email(email)
-                    .balance(BigDecimal.ZERO)
-                    .build();
-
-            return userRepository.save(user);
-
-        } catch (DataIntegrityViolationException ex) {
-            throw new DuplicateRequestException("User with this email already exists");
-        }
-    }
 
     /**
      * Retrieves the current balance of a user.
