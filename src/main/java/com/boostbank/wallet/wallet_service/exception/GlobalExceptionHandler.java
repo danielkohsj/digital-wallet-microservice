@@ -43,7 +43,12 @@ public class GlobalExceptionHandler {
      * @param ex the runtime exception thrown by the application
      * @return a standardized API error response
      */
-    @ExceptionHandler(RuntimeException.class)
+    @ExceptionHandler({
+            DuplicateRequestException.class,
+            InvalidAmountException.class,
+            InsufficientBalanceException.class,
+            UserNotFoundException.class
+    })
     public BaseResponse<Void> handleRuntimeException(RuntimeException ex) {
 
         return BaseResponse.<Void>builder()
