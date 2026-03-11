@@ -1,6 +1,5 @@
 package com.boostbank.wallet.wallet_service.service;
 
-import com.boostbank.wallet.wallet_service.entity.IdempotencyKey;
 import com.boostbank.wallet.wallet_service.entity.Transaction;
 import com.boostbank.wallet.wallet_service.entity.User;
 import com.boostbank.wallet.wallet_service.enums.TransactionType;
