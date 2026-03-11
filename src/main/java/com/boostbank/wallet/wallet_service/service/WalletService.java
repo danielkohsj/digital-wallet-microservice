@@ -97,9 +97,8 @@ public class WalletService {
         transactionTemplate.executeWithoutResult(status -> {
 
             // 1. Checks for duplicate transactions
-            IdempotencyKey key;
             try {
-                key = insertIdempotencyKey(idempotencyKey);
+                idempotencyKeyRepository.insertKey(idempotencyKey, Instant.now());
             } catch (DataIntegrityViolationException ex) {
                 throw new DuplicateRequestException("Duplicate request detected");
             }
@@ -109,11 +108,11 @@ public class WalletService {
 
             // 3. Update balance
             User user = userRepository.findByIdForUpdate(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
             user.setBalance(user.getBalance().add(amount));
 
             // 4. Create new credit transaction info
-            Transaction tx = transactionRepository.save(
+            transactionRepository.save(
                     Transaction.builder()
                             .type(TransactionType.CREDIT)
                             .amount(amount)
@@ -121,8 +120,6 @@ public class WalletService {
                             .timestamp(Instant.now())
                             .build()
             );
-            key.setTransactionId(tx.getTransactionId());
-            idempotencyKeyRepository.save(key);
         });
     }
 
@@ -149,9 +146,8 @@ public class WalletService {
         transactionTemplate.executeWithoutResult(status -> {
 
             // 1. Checks for duplicate transactions
-            IdempotencyKey key;
             try {
-                key = insertIdempotencyKey(idempotencyKey);
+                idempotencyKeyRepository.insertKey(idempotencyKey, Instant.now());
             } catch (DataIntegrityViolationException ex) {
                 throw new DuplicateRequestException("Duplicate request detected");
             }
@@ -161,13 +157,13 @@ public class WalletService {
 
             // 3. Check balance then update
             User user = userRepository.findByIdForUpdate(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
 
             validateBalance(amount, user);
             user.setBalance(user.getBalance().subtract(amount));
 
             // 4. Create new debit transaction info
-            Transaction tx = transactionRepository.save(
+            transactionRepository.save(
                     Transaction.builder()
                             .type(TransactionType.DEBIT)
                             .amount(amount)
@@ -175,8 +171,6 @@ public class WalletService {
                             .timestamp(Instant.now())
                             .build()
             );
-            key.setTransactionId(tx.getTransactionId());
-            idempotencyKeyRepository.save(key);
         });
     }
 
@@ -205,9 +199,8 @@ public class WalletService {
         transactionTemplate.executeWithoutResult(status -> {
 
             // 1. Checks for duplicate transactions
-            IdempotencyKey key;
             try {
-                key = insertIdempotencyKey(idempotencyKey);
+                idempotencyKeyRepository.insertKey(idempotencyKey, Instant.now());
             } catch (DataIntegrityViolationException ex) {
                 throw new DuplicateRequestException("Duplicate request detected");
             }
@@ -226,7 +219,7 @@ public class WalletService {
             destinationUser.setBalance(destinationUser.getBalance().add(amount));
 
             // 5. Create transfer transaction info
-            Transaction tx = transactionRepository.save(
+            transactionRepository.save(
                     Transaction.builder()
                             .type(TransactionType.TRANSFER)
                             .amount(amount)
@@ -235,8 +228,6 @@ public class WalletService {
                             .timestamp(Instant.now())
                             .build()
             );
-            key.setTransactionId(tx.getTransactionId());
-            idempotencyKeyRepository.save(key);
         });
     }
 
@@ -253,30 +244,6 @@ public class WalletService {
     public List<Transaction> getTransactionHistory(UUID userId) {
         return transactionRepository
                 .findBySourceUserIdOrDestinationUserId(userId, userId);
-    }
-
-    /**
-     * Inserts a new idempotency key record into the database.
-     *
-     * <p>This method implements the "insert-first" idempotency pattern,
-     * where the key is inserted before executing the operation. If a
-     * duplicate key exists, the database will throw a constraint
-     * violation which should be translated into a
-     * {@link DuplicateRequestException}.</p>
-     *
-     * <p>This approach prevents race conditions where multiple requests
-     * check for key existence simultaneously.</p>
-     *
-     * @param idempotencyKey the unique idempotency key provided by the client
-     * @return IdempotencyKey the newly created unique idempotency key for a transaction
-     */
-    private IdempotencyKey insertIdempotencyKey(String idempotencyKey) {
-        return idempotencyKeyRepository.save(
-                IdempotencyKey.builder()
-                        .idempotencyKey(idempotencyKey)
-                        .createdAt(Instant.now())
-                        .build()
-        );
     }
 
     /**

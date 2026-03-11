@@ -1,12 +1,9 @@
 package com.boostbank.wallet.wallet_service.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
-import java.util.UUID;
 
 
 @Entity
@@ -23,11 +20,6 @@ public class IdempotencyKey {
      */
     @Id
     private String idempotencyKey;
-
-    /**
-     * Transaction ID associated with the processed request.
-     */
-    private UUID transactionId;
 
     /**
      * Timestamp when the request was processed.
