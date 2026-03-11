@@ -175,6 +175,7 @@ controller
 
 service
     WalletService
+    UserService
 
 repository
     UserRepository
