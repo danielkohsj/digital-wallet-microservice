@@ -223,10 +223,65 @@ Alternatively, run `WalletServiceApplication` from your IDE.
 
 ---
 
+# Database Schema
+
+The service uses PostgreSQL with three primary tables.
+
+### users
+Stores wallet user information.
+
+| Column  | Type             | Description            |
+| ------- | ---------------- | ---------------------- |
+| id      | UUID (PK)        | Unique user identifier |
+| name    | VARCHAR          | User's name            |
+| email   | VARCHAR (UNIQUE) | User email             |
+| balance | DECIMAL          | Current wallet balance |
+
+
+### transactions
+Stores all wallet operations
+
+| Column              | Type      | Description                   |
+| ------------------- | --------- | ----------------------------- |
+| transaction_id      | UUID (PK) | Unique transaction identifier |
+| type                | VARCHAR   | CREDIT / DEBIT / TRANSFER     |
+| amount              | DECIMAL   | Transaction amount            |
+| source_user_id      | UUID      | Sender user ID                |
+| destination_user_id | UUID      | Receiver user ID              |
+| timestamp           | TIMESTAMP | Transaction timestamp         |
+
+
+### idempotency_keys
+Prevents duplicate financial operations.
+
+| Column          | Type         | Description             |
+| --------------- | ------------ | ----------------------- |
+| idempotency_key | VARCHAR (PK) | Unique idempotency key  |
+| created_at      | TIMESTAMP    | Request processing time |
+
+
+## Schema Relationships
+```
+users
+^
+│
+transactions
+│
+├── source_user_id → users.id
+└── destination_user_id → users.id
+
+idempotency_keys
+```
+
+---
+
 # Example API Requests
+
+Note: The full API documentation can be found on Swagger, accessible via http://localhost:8080/swagger-ui.html
 
 ## Create User
 
+Create a new wallet user.
 ```
 POST /api/wallet/users
 ```
@@ -240,10 +295,25 @@ Request body:
 }
 ```
 
+Response:
+```json
+{
+  "result": "SUCCESS",
+  "message": "User created successfully",
+  "data": {
+    "id": "8a0cbb3a-5a60-4a4f-92b0-3fa5c5c3d0e1",
+    "name": "Alice",
+    "email": "alice@example.com",
+    "balance": 0
+  }
+}
+```
+
 ---
 
 ## Credit Wallet
 
+Add funds to a user's wallet.
 ```
 POST /api/wallet/credit
 ```
@@ -263,10 +333,51 @@ Request body:
 }
 ```
 
+Response:
+```json
+{
+  "result": "SUCCESS",
+  "message": "Wallet credited successfully"
+}
+```
+
+---
+
+## Debit Wallet
+
+Deducts funds from a user's wallet.
+```
+POST /api/wallet/debit
+```
+
+Header:
+
+```
+Idempotency-Key: debit-001
+```
+
+Request body:
+
+```json
+{
+  "userId": "UUID",
+  "amount": 100
+}
+```
+
+Response:
+```json
+{
+  "result": "SUCCESS",
+  "message": "Wallet debited successfully"
+}
+```
+
 ---
 
 ## Transfer Funds
 
+Transfers funds between two users.
 ```
 POST /api/wallet/transfer
 ```
@@ -282,8 +393,16 @@ Request body:
 ```json
 {
   "sourceUserId": "UUID",
-  "destinationUserId": "UUID",
+  "destinationUserId": "UUID2",
   "amount": 50
+}
+```
+
+Response:
+```json
+{
+  "result": "SUCCESS",
+  "message": "Transfer completed successfully"
 }
 ```
 
@@ -291,16 +410,62 @@ Request body:
 
 ## Get Wallet Balance
 
+Retrieve the current wallet balance from a user.
 ```
 GET /api/wallet/balance/{userId}
+```
+
+Example request:
+```
+GET /api/wallet/balance/8a0cbb3a-5a60-4a4f-92b0-3fa5c5c3d0e1
+```
+
+Response:
+```json
+{
+  "result": "SUCCESS",
+  "data": {
+    "userId": "8a0cbb3a-5a60-4a4f-92b0-3fa5c5c3d0e1",
+    "balance": 70
+  }
+}
 ```
 
 ---
 
 ## Get Transaction History
 
+Retrieve all transactions associated with a user.
 ```
 GET /api/wallet/transactions/{userId}
+```
+
+Example request:
+```
+GET /api/wallet/transactions/8a0cbb3a-5a60-4a4f-92b0-3fa5c5c3d0e1
+```
+
+Response:
+```json
+{
+  "result": "SUCCESS",
+  "data": [
+    {
+      "transactionId": "c2a5b1b0-8e91-4c92-a7b0-9d1c8e01e3c7",
+      "type": "CREDIT",
+      "amount": 100,
+      "destinationUserId": "8a0cbb3a-5a60-4a4f-92b0-3fa5c5c3d0e1",
+      "timestamp": "2026-03-11T10:15:30Z"
+    },
+    {
+      "transactionId": "7eaf3f40-72b7-45f5-8a10-10f55b8e1b22",
+      "type": "DEBIT",
+      "amount": 30,
+      "sourceUserId": "8a0cbb3a-5a60-4a4f-92b0-3fa5c5c3d0e1",
+      "timestamp": "2026-03-11T11:20:10Z"
+    }
+  ]
+}
 ```
 
 ---
